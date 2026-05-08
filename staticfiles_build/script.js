@@ -448,6 +448,37 @@ function initHamburger() {
     });
 }
 
+function initNavMoreMenu() {
+    const toggle = document.getElementById('navMoreToggle');
+    const dropdown = document.getElementById('navMoreDropdown');
+    const item = toggle ? toggle.closest('.nav-more-item') : null;
+
+    if (!toggle || !dropdown || !item) return;
+
+    const closeMenu = () => {
+        dropdown.classList.remove('show');
+        toggle.classList.remove('active');
+        toggle.setAttribute('aria-expanded', 'false');
+    };
+
+    toggle.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const isOpen = dropdown.classList.toggle('show');
+        toggle.classList.toggle('active', isOpen);
+        toggle.setAttribute('aria-expanded', String(isOpen));
+    });
+
+    document.addEventListener('click', (event) => {
+        if (!item.contains(event.target)) {
+            closeMenu();
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') closeMenu();
+    });
+}
+
 function initCartSidebar() {
     const cartLink = document.getElementById('cart-link');
     const closeBtn = document.getElementById('closeCart');
@@ -476,41 +507,61 @@ function initDropdown() {
     const container = avatarBtn ? avatarBtn.closest('.nav-user-container') : null;
     if (!avatarBtn || !dropdown) return;
 
+    const supportsHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
     let closeTimer = null;
-    const openDropdown = () => dropdown.classList.add('show');
+
+    const openDropdown = () => {
+        if (closeTimer) {
+            clearTimeout(closeTimer);
+            closeTimer = null;
+        }
+        dropdown.classList.add('show');
+        avatarBtn.setAttribute('aria-expanded', 'true');
+    };
+
     const closeDropdown = () => {
         if (closeTimer) {
             clearTimeout(closeTimer);
             closeTimer = null;
         }
         dropdown.classList.remove('show');
+        avatarBtn.setAttribute('aria-expanded', 'false');
     };
+
     const scheduleClose = () => {
         if (closeTimer) clearTimeout(closeTimer);
         closeTimer = setTimeout(() => {
             dropdown.classList.remove('show');
+            avatarBtn.setAttribute('aria-expanded', 'false');
             closeTimer = null;
-        }, 320);
+        }, 180);
     };
 
-    avatarBtn.addEventListener('click', (event) => {
-        event.stopPropagation();
-        dropdown.classList.toggle('show');
-    });
-
-    if (container) {
+    if (supportsHover && container) {
         container.addEventListener('mouseenter', openDropdown);
         container.addEventListener('mouseleave', scheduleClose);
         container.addEventListener('focusin', openDropdown);
+        container.addEventListener('focusout', (event) => {
+            if (!container.contains(event.relatedTarget)) scheduleClose();
+        });
+        dropdown.addEventListener('mouseenter', openDropdown);
+        dropdown.addEventListener('mouseleave', scheduleClose);
+    } else {
+        avatarBtn.addEventListener('click', (event) => {
+            event.stopPropagation();
+            const isOpen = dropdown.classList.toggle('show');
+            avatarBtn.setAttribute('aria-expanded', String(isOpen));
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!dropdown.contains(event.target) && !avatarBtn.contains(event.target)) {
+                closeDropdown();
+            }
+        });
     }
 
-    dropdown.addEventListener('mouseenter', openDropdown);
-    dropdown.addEventListener('mouseleave', scheduleClose);
-
-    document.addEventListener('click', (event) => {
-        if (!dropdown.contains(event.target) && !avatarBtn.contains(event.target)) {
-            closeDropdown();
-        }
+    avatarBtn.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') closeDropdown();
     });
 
     document.addEventListener('keydown', (event) => {
@@ -841,6 +892,7 @@ function logoutUser() {
 
 document.addEventListener('DOMContentLoaded', () => {
     initHamburger();
+    initNavMoreMenu();
     initCartSidebar();
     initDropdown();
     initGlobalStoreButtons();

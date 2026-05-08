@@ -12,19 +12,47 @@
     <ul class="nav-links" id="navLinks">
         <li><a href="{% url 'home' %}" {% if request.resolver_match.url_name == 'home' %}style="color:#8B5E3C; font-weight:700;"{% endif %}>Home</a></li>
         <li><a href="{% url 'shop' %}" {% if request.resolver_match.url_name == 'shop' %}style="color:#8B5E3C; font-weight:700;"{% endif %}>Shop</a></li>
-        <li><a href="{% url 'gallery' %}" {% if request.resolver_match.url_name == 'gallery' %}style="color:#8B5E3C; font-weight:700;"{% endif %}>Gallery</a></li>
-        <li><a href="{% url 'testimonials' %}" {% if request.resolver_match.url_name == 'testimonials' %}style="color:#8B5E3C; font-weight:700;"{% endif %}>Testimonials</a></li>
-        <li><a href="{% url 'about' %}" {% if request.resolver_match.url_name == 'about' %}style="color:#8B5E3C; font-weight:700;"{% endif %}>About</a></li>
-        <li><a href="{% url 'contact' %}" {% if request.resolver_match.url_name == 'contact' %}style="color:#8B5E3C; font-weight:700;"{% endif %}>Contact</a></li>
+        <li class="nav-more-item">
+            <button
+                class="nav-more-toggle"
+                id="navMoreToggle"
+                type="button"
+                aria-label="Show more pages"
+                aria-haspopup="true"
+                aria-expanded="false"
+                {% if request.resolver_match.url_name == 'gallery' or request.resolver_match.url_name == 'testimonials' or request.resolver_match.url_name == 'about' or request.resolver_match.url_name == 'contact' or request.resolver_match.url_name == 'admin_dashboard' %}
+                style="color:#8B5E3C; font-weight:700;"
+                {% endif %}
+            >
+                Pages
+                <span class="nav-more-caret" aria-hidden="true"></span>
+            </button>
+            <div class="nav-more-dropdown" id="navMoreDropdown">
+                <a href="{% url 'gallery' %}" {% if request.resolver_match.url_name == 'gallery' %}style="color:#8B5E3C; font-weight:700;"{% endif %}>Gallery</a>
+                <a href="{% url 'testimonials' %}" {% if request.resolver_match.url_name == 'testimonials' %}style="color:#8B5E3C; font-weight:700;"{% endif %}>Testimonials</a>
+                <a href="{% url 'about' %}" {% if request.resolver_match.url_name == 'about' %}style="color:#8B5E3C; font-weight:700;"{% endif %}>About</a>
+                <a href="{% url 'contact' %}" {% if request.resolver_match.url_name == 'contact' %}style="color:#8B5E3C; font-weight:700;"{% endif %}>Contact</a>
 
-        {% if user.is_staff %}
-        <li><a href="{% url 'admin_dashboard' %}" style="color:#d32f2f; font-weight:700;">Admin Panel</a></li>
-        {% endif %}
+                {% if user.is_staff %}
+                <a href="{% url 'admin_dashboard' %}" style="color:#d32f2f; font-weight:700;">Admin Panel</a>
+                {% endif %}
+            </div>
+        </li>
 
         {% if user.is_authenticated %}
         <li>
             <div class="nav-user-container">
-                <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Profile" class="user-avatar" id="userAvatarBtn">
+                <img
+                    src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
+                    alt="Profile"
+                    class="user-avatar"
+                    id="userAvatarBtn"
+                    tabindex="0"
+                    role="button"
+                    aria-label="Open profile menu"
+                    aria-haspopup="true"
+                    aria-expanded="false"
+                >
                 <div class="profile-dropdown" id="profileDropdown">
                     <div style="padding: 10px 16px; font-weight: bold; background: #f9f9f9; font-size: 0.8rem; border-bottom: 1px solid #eee;">
                         Hi, {{ user.first_name|default:user.username }}
@@ -40,6 +68,32 @@
         <li><a href="{% url 'login' %}">Log In</a></li>
         <li><a href="{% url 'signup' %}" style="background: #8B5E3C; color: white; padding: 10px 25px; border-radius: 50px; font-weight: bold;">Join</a></li>
         {% endif %}
+
+        <li class="nav-mode-item">
+            <button
+                class="mode-toggle"
+                id="siteModeToggle"
+                type="button"
+                aria-label="Toggle simple website mode"
+                aria-pressed="false"
+            >
+                <span class="mode-toggle__side mode-toggle__side--full">
+                    <img src="{% static 'BMW_M6_GT3_Super_Car_desktop_Wallpaper_1.jpg' %}" alt="" aria-hidden="true">
+                    <span>BMW</span>
+                </span>
+                <span class="mode-toggle__track" aria-hidden="true">
+                    <span class="mode-toggle__thumb"></span>
+                </span>
+                <span class="mode-toggle__side mode-toggle__side--simple">
+                    <span class="mode-toggle__car" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" role="presentation" focusable="false">
+                            <path d="M5.5 11.5 7 8.2A3 3 0 0 1 9.7 6.5h4.6A3 3 0 0 1 17 8.2l1.5 3.3h1a1.5 1.5 0 0 1 1.5 1.5V16a1 1 0 0 1-1 1h-1a2.5 2.5 0 0 1-5 0H9a2.5 2.5 0 0 1-5 0H3a1 1 0 0 1-1-1v-1.5a2 2 0 0 1 2-2h1.5Zm1.2 0h10.6L16.2 9a1.6 1.6 0 0 0-1.4-.9H9.2a1.6 1.6 0 0 0-1.4.9L6.7 11.5ZM8 16a1 1 0 1 0 2 0 1 1 0 0 0-2 0Zm11 0a1 1 0 1 0 2 0 1 1 0 0 0-2 0Z"/>
+                        </svg>
+                    </span>
+                    <span>Simple</span>
+                </span>
+            </button>
+        </li>
 
         <li id="cartNavItem">
             <a href="#" id="cart-link">Cart <span class="cart-count-pill" id="cart-count">0</span></a>
