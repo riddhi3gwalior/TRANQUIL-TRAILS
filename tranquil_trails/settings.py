@@ -5,28 +5,95 @@ Django settings for tranquil_trails project.
 import importlib.util
 import os
 from pathlib import Path
+from urllib.parse import parse_qs, unquote, urlparse
+
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 def env_bool(name, default=False):
-    value = os.environ.get(name, str(default))
-    return value.strip().lower() in {"1", "true", "yes", "on"}
+    value = os.environ.get(name)
+    if value is None:
+        return default
+
+    normalized = value.strip().lower()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "off"}:
+        return False
+    return default
 
 
 def env_list(name, default=""):
     value = os.environ.get(name, default)
     return [item.strip() for item in value.split(",") if item.strip()]
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get(
-    'SECRET_KEY',
-    'django-insecure-3_caq&118lu1)$o#!&2mw$l=!+5$5k0-=goz=1%2pin^ntd36x',
-)
+
+def env_str(name, default=""):
+    return os.environ.get(name, default)
+
+
+def get_database_config():
+    database_url = env_str('DATABASE_URL').strip()
+    if not database_url:
+        if not DEBUG:
+            raise ImproperlyConfigured(
+                'DATABASE_URL must be set for production deployments.'
+            )
+        return {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+
+    parsed = urlparse(database_url)
+    scheme = parsed.scheme.split('+', 1)[0].lower()
+
+    if scheme in {'postgres', 'postgresql'}:
+        query_params = parse_qs(parsed.query)
+        sslmode = query_params.get(
+            'sslmode',
+            [env_str('POSTGRES_SSLMODE', 'require' if not DEBUG else 'prefer')],
+        )[0]
+
+        config = {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': unquote(parsed.path.lstrip('/')),
+            'USER': unquote(parsed.username or ''),
+            'PASSWORD': unquote(parsed.password or ''),
+            'HOST': parsed.hostname or '',
+            'PORT': str(parsed.port or 5432),
+            'CONN_MAX_AGE': int(env_str('DATABASE_CONN_MAX_AGE', '600')),
+        }
+        if sslmode:
+            config['OPTIONS'] = {'sslmode': sslmode}
+        return config
+
+    if scheme == 'sqlite':
+        if not DEBUG:
+            raise ImproperlyConfigured(
+                'SQLite is only supported for local development in this project.'
+            )
+        return {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': Path(unquote(parsed.path or 'db.sqlite3')),
+        }
+
+    raise ImproperlyConfigured(
+        f"Unsupported DATABASE_URL scheme: {parsed.scheme!r}"
+    )
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env_bool('DEBUG', True)
+
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = env_str('SECRET_KEY')
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = 'django-insecure-change-me-before-deploy'
+    else:
+        raise ImproperlyConfigured('SECRET_KEY must be set for production deployments.')
 
 ALLOWED_HOSTS = env_list('ALLOWED_HOSTS', '127.0.0.1,localhost,.onrender.com')
 CSRF_TRUSTED_ORIGINS = env_list(
@@ -84,12 +151,8 @@ TEMPLATES = [
 WSGI_APPLICATION = 'tranquil_trails.wsgi.application'
 
 # Database
-DATABASE_PATH = Path(os.environ.get('DJANGO_DB_PATH', BASE_DIR / 'db.sqlite3'))
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': DATABASE_PATH,
-    }
+    'default': get_database_config(),
 }
 
 # Password validation
@@ -116,7 +179,10 @@ USE_TZ = True
 
 # Static files
 STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles_build'
+STATIC_ROOT = Path(env_str('DJANGO_STATIC_ROOT', BASE_DIR / 'staticfiles_build')).expanduser()
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+]
 
 STORAGES = {
     'default': {
@@ -133,19 +199,24 @@ STORAGES = {
 
 # Media files
 MEDIA_URL = '/media/'
-MEDIA_ROOT = Path(os.environ.get('DJANGO_MEDIA_ROOT', BASE_DIR / 'media'))
+MEDIA_ROOT = Path(env_str('DJANGO_MEDIA_ROOT', BASE_DIR / 'media')).expanduser()
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Razorpay Settings
-RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID', 'rzp_test_SbbbAKhDflCVYY')
-RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET', 'UgFNil6UWnzEhTSrHg7AqGLU')
+RAZORPAY_KEY_ID = env_str('RAZORPAY_KEY_ID', '')
+RAZORPAY_KEY_SECRET = env_str('RAZORPAY_KEY_SECRET', '')
 
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = env_bool('SECURE_SSL_REDIRECT', True)
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = int(env_str('SECURE_HSTS_SECONDS', '31536000'))
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool('SECURE_HSTS_INCLUDE_SUBDOMAINS', True)
+    SECURE_HSTS_PRELOAD = env_bool('SECURE_HSTS_PRELOAD', True)
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_REFERRER_POLICY = 'same-origin'
 
 # Redirect to the 'login' path name when @login_required blocks a user
 LOGIN_URL = 'login'

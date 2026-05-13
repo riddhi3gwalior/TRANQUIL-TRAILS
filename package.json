@@ -1,0 +1,10 @@
+{
+  "name": "tranquil-trails",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "python manage.py runserver 127.0.0.1:8000",
+    "start": "gunicorn tranquil_trails.wsgi:application",
+    "build": "python manage.py collectstatic --noinput"
+  }
+}
