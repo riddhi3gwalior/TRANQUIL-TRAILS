@@ -105,6 +105,35 @@ class ShippingAddress(models.Model):
     def __str__(self):
         return self.address
 
+
+# --- 6. RETURN REQUEST MODEL ---
+class ReturnRequest(models.Model):
+    STATUS_CHOICES = (
+        ('Pending', 'Pending'),
+        ('Approved', 'Approved'),
+        ('Received', 'Received'),
+        ('Refunded', 'Refunded'),
+        ('Rejected', 'Rejected'),
+    )
+
+    order = models.ForeignKey(Order, related_name='return_requests', on_delete=models.CASCADE)
+    order_item = models.ForeignKey(OrderItem, related_name='return_requests', on_delete=models.SET_NULL, null=True, blank=True)
+    customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True, blank=True)
+    product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, blank=True)
+    quantity = models.PositiveIntegerField(default=1)
+    reason = models.CharField(max_length=255)
+    details = models.TextField(blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
+    admin_note = models.TextField(blank=True)
+    restocked = models.BooleanField(default=False)
+    processed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        product_name = self.product.name if self.product else 'Return Request'
+        return f"#{self.order_id} - {product_name}"
+
 # --- 7. GALLERY MODEL ---
 class GalleryItem(models.Model):
     CATEGORY_CHOICES = [
@@ -151,6 +180,7 @@ class Offer(models.Model):
 class Review(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
+    avatar_image = models.ImageField(upload_to='reviews/avatars/', blank=True, null=True)
     rating = models.IntegerField(default=5)
     comment = models.TextField()
     is_liked = models.BooleanField(default=False)
@@ -181,6 +211,12 @@ class SiteSetting(models.Model):
     store_name = models.CharField(max_length=100, default="Tranquil Trails")
     admin_email = models.EmailField(default="admin@tranquiltrails.com")
     contact_phone = models.CharField(max_length=20, default="+1 234 567 890")
+    footer_tagline = models.TextField(default="Thoughtfully handcrafted pieces for calm, soulful spaces.")
+    footer_address = models.TextField(default="Studio Address\nAdd your workshop or store address from Admin Settings.")
+    footer_hours = models.CharField(max_length=120, default="Mon - Sat | 10:00 AM - 7:00 PM")
+    footer_instagram_url = models.URLField(blank=True, default="")
+    footer_facebook_url = models.URLField(blank=True, default="")
+    footer_whatsapp_url = models.URLField(blank=True, default="")
     
     currency = models.CharField(max_length=10, default="USD")
     tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=5.00)

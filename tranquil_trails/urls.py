@@ -3,6 +3,7 @@ from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
 from core import views
+from django.contrib.auth import views as auth_views
 
 
 urlpatterns = [
@@ -19,6 +20,7 @@ urlpatterns = [
     # Info Pages
     path('offers/', views.offers, name='offers'),
     path('about/', views.about, name='about'),
+    path('testimonials/', views.testimonials, name='testimonials'),
     # FIXED: Changed 'Contact' to 'contact' to match your template request
     path('contact-us/', views.contact, name='contact'),
 
@@ -37,6 +39,14 @@ urlpatterns = [
     path('api/signup/', views.signup_api, name='signup_api'),
     path('api/login/', views.login_api, name='login_api'),
     path('api/logout/', views.logout_api, name='logout_api'),
+    path('api/send-otp/', views.send_otp_api, name='send_otp_api'),
+    path('api/verify-otp-reset/', views.verify_otp_reset_api, name='verify_otp_reset_api'),
+
+    # Password Reset
+    path('password-reset/', auth_views.PasswordResetView.as_view(template_name='registration/password_reset_form.html'), name='password_reset'),
+    path('password-reset/done/', auth_views.PasswordResetDoneView.as_view(template_name='registration/password_reset_done.html'), name='password_reset_done'),
+    path('password-reset-confirm/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(template_name='registration/password_reset_confirm.html'), name='password_reset_confirm'),
+    path('password-reset-complete/', auth_views.PasswordResetCompleteView.as_view(template_name='registration/password_reset_complete.html'), name='password_reset_complete'),
 
     # ===== Cart & Payments =====
     path('cart/', views.cart_page, name='cart'),
@@ -46,6 +56,8 @@ urlpatterns = [
     path('verify-payment/', views.verify_payment, name='verify_payment'),
     path('payment-success/', views.payment_success, name='payment_success'),
     path('my-orders/', views.my_orders, name='my_orders'),
+    path('return-product/<int:order_id>/', views.return_product, name='return_product'),
+    path('return-product/<int:order_id>/submit/', views.submit_return_request, name='submit_return_request'),
 
     # ===== CUSTOM ADMIN PANEL =====
 
@@ -60,6 +72,7 @@ urlpatterns = [
     path('admin-add-product/', views.admin_add_product, name='admin_add_product'),
     path('admin/products/add/', views.admin_add_product, name='admin_add_product'),
     path('admin-products/export/', views.admin_export_products, name='admin_export_products'),
+    path('admin/products/export/', views.admin_export_section, {'section': 'products'}, name='admin_export_products_section'),
     path('admin/products/import/', views.admin_import_products, name='admin_import_products'),
     path('admin-edit-product/<int:pk>/', views.admin_edit_product, name='admin_edit_product'),
     path('admin-delete-product/<int:pk>/', views.admin_delete_product, name='admin_delete_product'),
@@ -67,6 +80,7 @@ urlpatterns = [
     # Categories
     path('admin-categories/', views.admin_categories, name='admin_categories'),
     path('admin/categories/', views.admin_categories, name='admin_categories'),
+    path('admin/categories/export/', views.admin_export_section, {'section': 'categories'}, name='admin_export_categories'),
     path('admin-edit-category/<int:pk>/', views.admin_edit_category, name='admin_edit_category'),
     path('admin-delete-category/<int:pk>/', views.admin_delete_category, name='admin_delete_category'),
 
@@ -79,6 +93,7 @@ urlpatterns = [
     # Inventory
     path('admin-inventory/', views.admin_inventory, name='admin_inventory'),
     path('admin/inventory/', views.admin_inventory, name='admin_inventory'),
+    path('admin/inventory/export/', views.admin_export_section, {'section': 'inventory'}, name='admin_export_inventory'),
     path('admin-dashboard/inventory/', views.admin_inventory, name='admin_inventory'),
     path('admin-dashboard/inventory/update/<int:pk>/', views.admin_update_stock, name='admin_update_stock'),
 
@@ -86,6 +101,9 @@ urlpatterns = [
     path('admin-orders/', views.admin_orders, name='admin_orders'),
     path('admin/orders/', views.admin_orders, name='admin_orders'),
     path('admin/orders/<int:order_id>/status/', views.admin_update_order_status, name='admin_update_order_status'),
+    path('admin-returns/', views.admin_returns, name='admin_returns'),
+    path('admin/returns/', views.admin_returns, name='admin_returns'),
+    path('admin/returns/<int:return_id>/status/', views.admin_update_return_status, name='admin_update_return_status'),
 
     # Reviews
     path('admin-reviews/', views.admin_reviews, name='admin_reviews'),
@@ -97,7 +115,6 @@ urlpatterns = [
     # Other Admin Pages
     path('admin-invoices/', views.admin_invoices, name='admin_invoices'),
     path('admin-shipments/', views.admin_shipments, name='admin_shipments'),
-    path('admin-returns/', views.admin_returns, name='admin_returns'),
     path('admin-customers/', views.admin_customers, name='admin_customers'),
     path('admin-segments/', views.admin_segments, name='admin_segments'),
     path('admin-staff/', views.admin_staff, name='admin_staff'),

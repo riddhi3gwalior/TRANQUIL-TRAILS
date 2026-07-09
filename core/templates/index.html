@@ -266,22 +266,22 @@
                 
                 {% for item in gallery_slider %}
                 <div class="slide" 
-                     data-name="{{ item.title }}" 
+                     data-name="{{ item.name }}" 
                      data-price="{{ item.price }}" 
                      data-img="{{ item.image.url }}">
                     
-                    <img src="{{ item.image.url }}" alt="{{ item.title }}">
+                    <img src="{{ item.image.url }}" alt="{{ item.name }}">
                     <button class="wishlist-btn wishlist-toggle"
                             style="position:absolute; top:18px; right:18px; width:46px; height:46px; border-radius:50%; z-index:3;"
                             data-id="{{ item.id }}"
-                            data-name="{{ item.title }}"
+                            data-name="{{ item.name }}"
                             data-price="{{ item.price }}"
                             data-img="{{ item.image.url }}">
                         <i class="fas fa-heart"></i>
                     </button>
                     <button class="add-to-cart-btn"
                             data-id="{{ item.id }}"
-                            data-name="{{ item.title }}"
+                            data-name="{{ item.name }}"
                             data-price="{{ item.price }}"
                             data-img="{{ item.image.url }}">Add to Cart - ₹{{ item.price }}</button>
                 </div>
@@ -392,6 +392,119 @@
         </div>
     </section>
 
+    {% if extra_case_data %}
+    <!-- Dynamic Category Showcases -->
+    {% for item in extra_case_data %}
+        {% with cat=item.category products=item.products %}
+            {% if forloop.counter0|divisibleby:3 %}
+                <!-- Layout A: Mosaic Grid -->
+                <section class="dynamic-category-showcase layout-mosaic" id="cat-{{ cat.slug }}">
+                    <div class="section-container">
+                        <div class="category-header">
+                            <span class="eyebrow" style="color: #8B5E3C; letter-spacing: 3px; font-size: 0.8rem; font-weight: 700;">EXPLORE</span>
+                            <h2 class="playfair" style="font-size: 3rem; margin-top: 5px;">{{ cat.name }} Heritage</h2>
+                        </div>
+                        <div class="mosaic-grid">
+                            {% for prod in products %}
+                            <div class="mosaic-item reveal-on-scroll">
+                                <div class="mosaic-media">
+                                    <img src="{{ prod.image.url }}" alt="{{ prod.name }}">
+                                    <div class="mosaic-overlay">
+                                        <div class="mosaic-info">
+                                            <h3>{{ prod.name }}</h3>
+                                            <p>₹{{ prod.price }}</p>
+                                            <button class="add-to-cart-btn" 
+                                                    data-id="{{ prod.id }}" data-name="{{ prod.name }}" 
+                                                    data-price="{{ prod.price }}" data-img="{{ prod.image.url }}">
+                                                Quick Add
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </section>
+            {% elif forloop.counter|add:"-1"|divisibleby:3 or forloop.counter0 == 1 %}
+                <!-- Layout B: Horizontal Shelf -->
+                <section class="dynamic-category-showcase layout-shelf" id="cat-{{ cat.slug }}">
+                    <div class="shelf-bg-text">{{ cat.name }}</div>
+                    <div class="section-container">
+                        <div class="category-header" style="text-align: center; margin-bottom: 50px;">
+                            <span class="eyebrow" style="color: #ffffff; letter-spacing: 3px; font-size: 0.8rem; font-weight: 700; opacity: 0.8;">NEW ARRIVALS</span>
+                            <h2 class="playfair" style="font-size: 3.5rem; color: #ffffff; margin-top: 10px;">The {{ cat.name }} Shelf</h2>
+                        </div>
+                        <div class="shelf-scroll-container">
+                            <div class="shelf-track">
+                                {% for prod in products %}
+                                <div class="shelf-card glass-card reveal-on-scroll">
+                                    <div class="shelf-img-box">
+                                        <img src="{{ prod.image.url }}" alt="{{ prod.name }}">
+                                        <button class="wishlist-btn wishlist-toggle" 
+                                                data-id="{{ prod.id }}" data-name="{{ prod.name }}" 
+                                                data-price="{{ prod.price }}" data-img="{{ prod.image.url }}">
+                                            <i class="fas fa-heart"></i>
+                                        </button>
+                                    </div>
+                                    <div class="shelf-info">
+                                        <h3>{{ prod.name }}</h3>
+                                        <div class="shelf-row">
+                                            <span class="price">₹{{ prod.price }}</span>
+                                            <button class="add-to-cart-btn"
+                                                    data-id="{{ prod.id }}" data-name="{{ prod.name }}" 
+                                                    data-price="{{ prod.price }}" data-img="{{ prod.image.url }}">
+                                                <i class="fas fa-shopping-bag"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            {% else %}
+                <!-- Layout C: Split Banner -->
+                <section class="dynamic-category-showcase layout-split" id="cat-{{ cat.slug }}">
+                    <div class="split-container">
+                        <div class="split-side split-banner reveal-on-scroll">
+                            <div class="banner-content">
+                                <span class="eyebrow" style="color: var(--primary); font-weight: 800; letter-spacing: 4px;">FEATURED</span>
+                                <h1 class="playfair" style="font-size: 4rem; line-height: 1.1; margin-top: 10px;">{{ cat.name }}<br>Artistry</h1>
+                                <p style="margin: 20px 0 30px; font-size: 1.1rem; opacity: 0.8;">Discover the soul of {{ cat.name }} through our handcrafted selective favorites.</p>
+                                <a href="{% url 'shop' %}?category={{ cat.name|urlencode }}" class="shop-collection-btn">Browse Collection</a>
+                            </div>
+                            {% if cat.image %}
+                                <img src="{{ cat.image.url }}" alt="{{ cat.name }}">
+                            {% else %}
+                                <div class="gradient-bg"></div>
+                            {% endif %}
+                        </div>
+                        <div class="split-side split-prods">
+                            <div class="grid-wrap">
+                                {% for prod in products|slice:":4" %}
+                                <div class="split-card reveal-on-scroll">
+                                    <img src="{{ prod.image.url }}" alt="{{ prod.name }}">
+                                    <div class="split-info">
+                                        <h4>{{ prod.name }}</h4>
+                                        <button class="add-to-cart-btn"
+                                                data-id="{{ prod.id }}" data-name="{{ prod.name }}" 
+                                                data-price="{{ prod.price }}" data-img="{{ prod.image.url }}">
+                                            ₹{{ prod.price }}
+                                        </button>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            {% endif %}
+        {% endwith %}
+    {% endfor %}
+    {% endif %}
+
     <section class="story-section" style="background: #2c2c2c; color: white; padding: 80px 5%; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 50px;">
          
         <div class="story-content" style="flex: 1; min-width: 300px; max-width: 600px;">
@@ -429,6 +542,7 @@
         <div style="text-align: center; margin-bottom: 50px;" class="testimonial-header">
             <span style="font-family: 'Poppins'; color: #8B5E3C; letter-spacing: 2px; text-transform: uppercase; font-size: 0.9rem; font-weight: 600;">Testimonials</span>
             <h2 style="font-family: 'Playfair Display'; font-size: 2.5rem; color: #ffffff; margin-top: 10px;">Voices from the Community</h2>
+            <a href="{% url 'testimonials' %}" style="display:inline-flex; margin-top:18px; padding:12px 20px; border-radius:999px; border:1px solid rgba(255,255,255,0.18); color:#fff; background:rgba(255,255,255,0.06); font-family:'Poppins'; font-size:0.9rem; text-decoration:none; transition:0.25s ease;">View All Testimonials</a>
         </div>
 
         <div class="reviews-grid">
@@ -448,15 +562,14 @@
                 </div>
                 <p>"{{ review.comment }}"</p>
                 <div class="reviewer">
-                    <div class="reviewer-avatar">
-                        {% if review.customer.profile_pic %}
-                            <img src="{{ review.customer.profile_pic.url }}" alt="User" class="reviewer-photo">
+                    <div class="reviewer-avatar{% if not review.avatar_url %} reviewer-avatar-fallback{% endif %}">
+                        {% if review.avatar_url %}
+                            <img src="{{ review.avatar_url }}" alt="{{ review.display_name }}" class="reviewer-photo">
                         {% else %}
-                            <img src="" alt="User" class="reviewer-photo reviewer-photo-fallback js-random-avatar" data-avatar-name="{{ review.customer.full_name|default:'Guest User' }}">
+                            <span class="reviewer-avatar-initial">{{ review.avatar_initial }}</span>
                         {% endif %}
-                        <span class="reviewer-avatar-icon"><i class="fas fa-user"></i></span>
                     </div>
-                    <div><h4>{{ review.customer.full_name }}</h4><span>{{ review.created_at|date:"M d, Y" }}</span></div>
+                    <div><h4>{{ review.display_name }}</h4><span>{{ review.created_at|date:"M d, Y" }}</span></div>
                 </div>
             </div>
             {% empty %}
@@ -603,6 +716,10 @@
             justify-content: center;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
+
+        .reviewer-avatar-fallback {
+            background: linear-gradient(135deg, rgba(139, 94, 60, 0.9), rgba(240, 213, 190, 0.72));
+        }
         
         .reviewer-photo { 
             width: 100%;
@@ -611,24 +728,13 @@
             display: block;
             transition: transform 0.25s ease;
         }
-        
-        .reviewer-avatar-icon {
-            position: absolute;
-            inset: 0;
-            display: none;
-            align-items: center;
-            justify-content: center;
+
+        .reviewer-avatar-initial {
             color: #ffffff;
             font-size: 1rem;
-            background: linear-gradient(135deg, rgba(139, 94, 60, 0.82), rgba(212, 163, 115, 0.86));
-        }
-        
-        .reviewer-avatar.show-icon .reviewer-photo {
-            display: none;
-        }
-
-        .reviewer-avatar.show-icon .reviewer-avatar-icon {
-            display: flex;
+            font-weight: 700;
+            font-family: 'Playfair Display';
+            letter-spacing: 0.05em;
         }
         
         .review-card:hover .reviewer-photo {
@@ -729,27 +835,6 @@
     </style>
 
     <style>
-        .main-footer { background-color: #1a1a1a; color: #bbb; padding: 80px 8% 30px; font-family: 'Poppins', sans-serif; }
-        .footer-container { display: grid; grid-template-columns: 2fr 1fr 1fr 2fr; gap: 40px; max-width: 1200px; margin: 0 auto; }
-        .footer-section h4 { font-family: 'Playfair Display', serif; font-size: 1.2rem; margin-bottom: 25px; color: #c5a880; letter-spacing: 1px; }
-        .footer-logo { font-family: 'Playfair Display', serif; font-size: 1.5rem; color: white; letter-spacing: 2px; margin-bottom: 20px; }
-        .footer-section p { font-size: 0.9rem; line-height: 1.8; color: #999; }
-        .footer-section ul { list-style: none; padding: 0; }
-        .footer-section ul li { margin-bottom: 12px; }
-        .footer-section ul li a { color: #888; text-decoration: none; transition: color 0.3s, transform 0.3s; font-size: 0.9rem; }
-        .footer-section ul li a:hover { color: #c5a880; transform: translateX(5px); }
-        .social-icons { display: flex; gap: 15px; margin-top: 20px; }
-        .social-icons a { color: white; text-decoration: none; font-size: 0.8rem; width: 35px; height: 35px; border: 1px solid #333; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: 0.3s; }
-        .social-icons a:hover { background: #c5a880; border-color: #c5a880; color: #1a1a1a; }
-        .subscribe-form { display: flex; margin-top: 20px; height: 45px; }
-        .subscribe-form input { padding: 10px 15px; border: 1px solid #333; background: #222; color: white; width: 70%; outline: none; font-family: 'Poppins'; }
-        .subscribe-form button { padding: 0 20px; background-color: #c5a880; border: none; cursor: pointer; color: #1a1a1a; font-weight: 600; transition: 0.3s; }
-        .subscribe-form button:hover { background-color: #8B5E3C; color: white; }
-        .footer-bottom { border-top: 1px solid #2a2a2a; margin-top: 60px; padding-top: 30px; display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: #666; }
-        .footer-legal a { margin-left: 20px; color: #666; text-decoration: none; transition: 0.3s; }
-        .footer-legal a:hover { color: #c5a880; }
-        @media (max-width: 992px) { .footer-container { grid-template-columns: 1fr 1fr; } }
-        @media (max-width: 600px) { .footer-container { grid-template-columns: 1fr; } .footer-bottom { flex-direction: column; gap: 15px; text-align: center; } }
     </style>
 
     <style>
@@ -943,45 +1028,6 @@
                 });
             }
 
-            const randomAvatarPool = [
-                'https://i.pravatar.cc/120?img=12',
-                'https://i.pravatar.cc/120?img=23',
-                'https://i.pravatar.cc/120?img=35',
-                'https://i.pravatar.cc/120?img=41',
-                'https://i.pravatar.cc/120?img=54',
-                'https://i.pravatar.cc/120?img=66'
-            ];
-
-            function showAvatarIcon(imgEl) {
-                const avatar = imgEl.closest('.reviewer-avatar');
-                if (avatar) {
-                    avatar.classList.add('show-icon');
-                }
-            }
-
-            function setRandomFallbackAvatar(imgEl) {
-                const randomUrl = randomAvatarPool[Math.floor(Math.random() * randomAvatarPool.length)];
-                imgEl.src = randomUrl;
-                imgEl.dataset.randomAvatarApplied = 'true';
-                imgEl.onload = () => {
-                    const avatar = imgEl.closest('.reviewer-avatar');
-                    if (avatar) avatar.classList.remove('show-icon');
-                };
-            }
-
-            document.querySelectorAll('.reviewer-photo').forEach((imgEl) => {
-                imgEl.onerror = () => {
-                    if (imgEl.dataset.randomAvatarApplied === 'true') {
-                        showAvatarIcon(imgEl);
-                        return;
-                    }
-                    setRandomFallbackAvatar(imgEl);
-                };
-
-                if (imgEl.classList.contains('js-random-avatar') || !imgEl.getAttribute('src')) {
-                    setRandomFallbackAvatar(imgEl);
-                }
-            });
         })();
     </script>
 

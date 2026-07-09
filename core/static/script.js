@@ -1,6 +1,7 @@
 const currentUser = window.djangoUser || 'guest';
 const cartKey = `cart_${currentUser}`;
 const wishlistKey = `wishlist_${currentUser}`;
+const siteModeKey = `site_mode_${currentUser}`;
 const staticPlaceholder = '/static/placeholder.jpg';
 
 function parseStorage(key) {
@@ -52,6 +53,16 @@ if (currentUser !== 'guest') {
 
 let cart = parseStorage(cartKey);
 let wishlist = parseStorage(wishlistKey);
+let toastSequence = 0;
+
+const toastPalette = [
+    ['#0f766e', '#14b8a6'],
+    ['#2563eb', '#06b6d4'],
+    ['#7c3aed', '#ec4899'],
+    ['#d97706', '#f59e0b'],
+    ['#be123c', '#f43f5e'],
+    ['#16a34a', '#84cc16'],
+];
 
 function initToastContainer() {
     if (!document.getElementById('toast-container')) {
@@ -66,14 +77,33 @@ function showToast(message, type = 'info', duration = 2500) {
     initToastContainer();
     const container = document.getElementById('toast-container');
     const toast = document.createElement('div');
+    const typeOffset = { info: 0, success: 1, warning: 2, error: 3 }[type] ?? 0;
+    const theme = toastPalette[(toastSequence + typeOffset) % toastPalette.length];
+    const icons = {
+        success: '&#10003;',
+        warning: '&#9888;',
+        error: '&#10005;',
+        info: '&#8505;',
+    };
+
     toast.className = `toast ${type}`;
-    toast.innerHTML = `<span>${message}</span>`;
+    toast.style.setProperty('--toast-start', theme[0]);
+    toast.style.setProperty('--toast-end', theme[1]);
+    toast.style.setProperty('--toast-delay', `${Math.min(toastSequence * 40, 180)}ms`);
+    toast.innerHTML = `
+        <span class="toast-icon" aria-hidden="true">${icons[type] || icons.info}</span>
+        <span class="toast-message"></span>
+    `;
+    toast.querySelector('.toast-message').textContent = message;
     container.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add('show'));
 
     setTimeout(() => {
         toast.classList.add('hide');
-        setTimeout(() => toast.remove(), 280);
+        setTimeout(() => toast.remove(), 320);
     }, duration);
+
+    toastSequence += 1;
 }
 
 function normalizeImagePath(path) {
@@ -448,6 +478,37 @@ function initHamburger() {
     });
 }
 
+function initNavMoreMenu() {
+    const toggle = document.getElementById('navMoreToggle');
+    const dropdown = document.getElementById('navMoreDropdown');
+    const item = toggle ? toggle.closest('.nav-more-item') : null;
+
+    if (!toggle || !dropdown || !item) return;
+
+    const closeMenu = () => {
+        dropdown.classList.remove('show');
+        toggle.classList.remove('active');
+        toggle.setAttribute('aria-expanded', 'false');
+    };
+
+    toggle.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const isOpen = dropdown.classList.toggle('show');
+        toggle.classList.toggle('active', isOpen);
+        toggle.setAttribute('aria-expanded', String(isOpen));
+    });
+
+    document.addEventListener('click', (event) => {
+        if (!item.contains(event.target)) {
+            closeMenu();
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') closeMenu();
+    });
+}
+
 function initCartSidebar() {
     const cartLink = document.getElementById('cart-link');
     const closeBtn = document.getElementById('closeCart');
@@ -476,45 +537,89 @@ function initDropdown() {
     const container = avatarBtn ? avatarBtn.closest('.nav-user-container') : null;
     if (!avatarBtn || !dropdown) return;
 
+    const supportsHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
     let closeTimer = null;
-    const openDropdown = () => dropdown.classList.add('show');
+
+    const openDropdown = () => {
+        if (closeTimer) {
+            clearTimeout(closeTimer);
+            closeTimer = null;
+        }
+        dropdown.classList.add('show');
+        avatarBtn.setAttribute('aria-expanded', 'true');
+    };
+
     const closeDropdown = () => {
         if (closeTimer) {
             clearTimeout(closeTimer);
             closeTimer = null;
         }
         dropdown.classList.remove('show');
+        avatarBtn.setAttribute('aria-expanded', 'false');
     };
+
     const scheduleClose = () => {
         if (closeTimer) clearTimeout(closeTimer);
         closeTimer = setTimeout(() => {
             dropdown.classList.remove('show');
+            avatarBtn.setAttribute('aria-expanded', 'false');
             closeTimer = null;
-        }, 320);
+        }, 180);
     };
 
-    avatarBtn.addEventListener('click', (event) => {
-        event.stopPropagation();
-        dropdown.classList.toggle('show');
-    });
-
-    if (container) {
+    if (supportsHover && container) {
         container.addEventListener('mouseenter', openDropdown);
         container.addEventListener('mouseleave', scheduleClose);
         container.addEventListener('focusin', openDropdown);
+        container.addEventListener('focusout', (event) => {
+            if (!container.contains(event.relatedTarget)) scheduleClose();
+        });
+        dropdown.addEventListener('mouseenter', openDropdown);
+        dropdown.addEventListener('mouseleave', scheduleClose);
+    } else {
+        avatarBtn.addEventListener('click', (event) => {
+            event.stopPropagation();
+            const isOpen = dropdown.classList.toggle('show');
+            avatarBtn.setAttribute('aria-expanded', String(isOpen));
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!dropdown.contains(event.target) && !avatarBtn.contains(event.target)) {
+                closeDropdown();
+            }
+        });
     }
 
-    dropdown.addEventListener('mouseenter', openDropdown);
-    dropdown.addEventListener('mouseleave', scheduleClose);
-
-    document.addEventListener('click', (event) => {
-        if (!dropdown.contains(event.target) && !avatarBtn.contains(event.target)) {
-            closeDropdown();
-        }
+    avatarBtn.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') closeDropdown();
     });
 
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') closeDropdown();
+    });
+}
+
+function applySiteMode(isSimple) {
+    document.body.classList.toggle('simple-mode', isSimple);
+
+    const toggle = document.getElementById('siteModeToggle');
+    if (!toggle) return;
+
+    toggle.classList.toggle('is-simple', isSimple);
+    toggle.setAttribute('aria-pressed', String(isSimple));
+}
+
+function initSiteModeToggle() {
+    const toggle = document.getElementById('siteModeToggle');
+    if (!toggle) return;
+
+    const savedMode = localStorage.getItem(siteModeKey);
+    applySiteMode(savedMode === 'simple');
+
+    toggle.addEventListener('click', () => {
+        const nextIsSimple = !document.body.classList.contains('simple-mode');
+        localStorage.setItem(siteModeKey, nextIsSimple ? 'simple' : 'full');
+        applySiteMode(nextIsSimple);
     });
 }
 
@@ -641,11 +746,20 @@ function initWoodSection() {
     });
 }
 
+function calcDistanceShipping(km) {
+    if (!km || km <= 0) return null; // null = use server flat rate
+    if (km <= 10) return 30;
+    return km * 5;
+}
+
 function getCheckoutTotals(root) {
     const taxRate = parseFloat(root.dataset.taxRate || '0');
     const shippingRate = parseFloat(root.dataset.shippingRate || '0');
     const { subtotal, itemCount } = getCartMetrics();
-    const shipping = itemCount ? shippingRate : 0;
+    const kmInput = document.getElementById('delivery_km');
+    const km = kmInput ? parseFloat(kmInput.value) || 0 : 0;
+    const distShipping = calcDistanceShipping(km);
+    const shipping = itemCount ? (distShipping !== null ? distShipping : shippingRate) : 0;
     const tax = subtotal * (taxRate / 100);
     const total = subtotal + shipping + tax;
     return { subtotal, shipping, tax, total, itemCount };
@@ -659,7 +773,9 @@ function renderCheckoutPage() {
     const emptyState = document.getElementById('checkoutEmpty');
     const summary = document.getElementById('checkoutSummary');
     const submitButton = document.getElementById('checkoutSubmit');
+    const minWarning = document.getElementById('minOrderWarning');
     const totals = getCheckoutTotals(root);
+    const minOrder = parseFloat(root.dataset.minOrder || '30');
 
     document.getElementById('checkoutSubtotal').textContent = `Rs. ${totals.subtotal.toFixed(2)}`;
     document.getElementById('checkoutShipping').textContent = `Rs. ${totals.shipping.toFixed(2)}`;
@@ -671,12 +787,17 @@ function renderCheckoutPage() {
         emptyState.style.display = 'block';
         summary.style.display = 'none';
         submitButton.disabled = true;
+        if (minWarning) minWarning.style.display = 'none';
         return;
     }
 
     emptyState.style.display = 'none';
     summary.style.display = 'grid';
-    submitButton.disabled = false;
+
+    // Min order enforcement
+    const belowMin = totals.subtotal < minOrder;
+    submitButton.disabled = belowMin;
+    if (minWarning) minWarning.style.display = belowMin ? 'block' : 'none';
 
     itemsContainer.innerHTML = cart.map((item) => `
         <article class="order-line">
@@ -706,6 +827,7 @@ function initCheckoutOptions() {
 
 function buildCheckoutPayload(form) {
     const formData = new FormData(form);
+    const kmInput = document.getElementById('delivery_km');
     return {
         full_name: (formData.get('full_name') || '').trim(),
         email: (formData.get('email') || '').trim(),
@@ -715,6 +837,7 @@ function buildCheckoutPayload(form) {
         state: (formData.get('state') || '').trim(),
         zipcode: (formData.get('zipcode') || '').trim(),
         payment_method: formData.get('payment_method') || 'COD',
+        delivery_km: kmInput ? parseFloat(kmInput.value) || 0 : 0,
         items: cart.map((item) => ({ id: item.id, quantity: item.quantity })),
     };
 }
@@ -821,13 +944,28 @@ function logoutUser() {
         });
 }
 
+function initRevealOnScroll() {
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+            }
+        });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.reveal-on-scroll').forEach(el => observer.observe(el));
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     initHamburger();
+    initNavMoreMenu();
     initCartSidebar();
     initDropdown();
+    initSiteModeToggle();
     initGlobalStoreButtons();
     initSlider();
     initWoodSection();
+    initRevealOnScroll(); // Added reveal logic
     initCheckoutOptions();
     initCheckoutSubmit();
     renderCartSidebar();
@@ -836,4 +974,10 @@ document.addEventListener('DOMContentLoaded', () => {
     renderWishlistPage();
     renderCheckoutPage();
     updateWishlistButtons();
+
+    // Live shipping recalculation when km input changes
+    const kmInput = document.getElementById('delivery_km');
+    if (kmInput) {
+        kmInput.addEventListener('input', renderCheckoutPage);
+    }
 });
