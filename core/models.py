@@ -19,6 +19,10 @@ class Product(models.Model):
     name = models.CharField(max_length=200)
     slug = models.SlugField(unique=True)
     image = models.ImageField(upload_to='products/')
+    image_2 = models.ImageField(upload_to='products/', blank=True, null=True)
+    image_3 = models.ImageField(upload_to='products/', blank=True, null=True)
+    image_4 = models.ImageField(upload_to='products/', blank=True, null=True)
+
     description = models.TextField(blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     stock = models.PositiveIntegerField(default=0)
@@ -67,6 +71,21 @@ class Order(models.Model):
 
     def __str__(self):
         return str(self.id)
+    
+    def save(self, *args, **kwargs):
+        # Check if the order status is changed to Delivered or complete is marked True
+        if self.pk:
+            old_order = Order.objects.get(pk=self.pk)
+            if not old_order.complete and self.complete:
+                # Deduct stock when the payment completes
+                for item in self.orderitem_set.all():
+                    if item.product:
+                        product = item.product
+                        product.stock = max(0, product.stock - item.quantity)
+                        if product.stock == 0:
+                            product.available = False
+                        product.save()
+        super().save(*args, **kwargs)
 
     @property
     def get_cart_total(self):
